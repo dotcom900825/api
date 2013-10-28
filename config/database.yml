@@ -1,0 +1,5 @@
+database: ipassstore_production
+username: root
+password: ''
+host: localhost
+port: 3306
