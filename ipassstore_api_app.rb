@@ -88,9 +88,10 @@ class IpassstoreApiApp < Sinatra::Base
 
       @pass = Pass.where(pass_type_identifier: params[:pass_type_identifier], serial_number: params[:serial_number]).first_or_initialize
       @pass.save
+      pt = @pass.pass_template
 
       status 404 and return if @pass.nil?
-      status 401 and return if request.env['HTTP_AUTHORIZATION'] != "ApplePass #{@pass.authentication_token}"
+      status 401 and return if request.env['HTTP_AUTHORIZATION'] != "ApplePass #{pt.authentication_token}"
 
       @device = @pass.devices.where(device_library_identifier: params[:device_library_identifier]).first_or_initialize
       @device.push_token = push_token
