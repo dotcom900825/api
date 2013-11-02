@@ -46,18 +46,18 @@ class IpassstoreApiApp < Sinatra::Base
   namespace "/passbook/v1" do
     get '/passes/:pass_type_identifier/:serial_number' do
       raise Sinatra::NotFound unless params[:pass_type_identifier].match /([\w\d]\.?)+/
-      pass = Pass.where(pass_type_identifier: params[:pass_type_identifier], serial_number: params[:serial_number]).first
+
+      pt = PassTemplate.where(pass_type_identifier: params[:pass_type_identifier]).first
+      pass = Pass.where(serial_number: params[:serial_number]).first
 
       #Not found
       status 404 and return if pass.nil?
       #Unauthorized
-      status 401 and return if request.env['HTTP_AUTHORIZATION'] != "ApplePass #{pass.authentication_token}"
+      status 401 and return if request.env['HTTP_AUTHORIZATION'] != "ApplePass #{pt.authentication_token}"
 
-      @pass_template = pass.pass_template
+      last_modified(pt.updated_at)
 
-      last_modified(@pass_template.updated_at)
-
-      send_file(@pass_template.pkpass_path,
+      send_file(pt.pkpass_path,
                 filename: "pass.pkpass",
                 type: "application/vnd.apple.pkpass",
                 disposition: 'attachment')
@@ -65,23 +65,40 @@ class IpassstoreApiApp < Sinatra::Base
 
     get '/devices/:device_library_identifier/registrations/:pass_type_identifier' do
       begin
-        @passes = Pass.joins(:devices).where('passes.pass_type_identifier = ?', params[:pass_type_identifier]).where('devices.device_library_identifier = ?', params[:device_library_identifier])
+        pt = PassTemplate.where(pass_type_identifier: params[:pass_type_identifier]).first
       rescue ActiveRecord::RecordNotFound => e
-        status 404 and return if passes.empty?
+        status 404 and return if pt.empty?
       end
 
-      @passes = passes.where('passes.updated_at > ?', params[:passesUpdatedSince]) if params[:passesUpdatedSince]
+      if pt.is_public_card?
+        pt = pt.where('pass_templates.last_updated > ?', params[:passesUpdatedSince]) if params[:passesUpdatedSince]
+        unless pt.empty?
+          content_type :json
+          {
+            lastUpdated: pt.updated_at,
+            serialNumbers: pt.passes.collect(&:serial_number).collect(&:to_s)
+          }.to_json
 
-      if @passes.any?
-        content_type :json
-        {
-          lastUpdated: @passes.collect(&:updated_at).max,
-          serialNumbers: @passes.collect(&:serial_number).collect(&:to_s)
-        }.to_json
+          status 200
+        else
+          status 204
+        end
 
-        status 200
       else
-        status 204
+        passes = Pass.joins(:pass_templates).where('pass_templates.pass_type_identifier = ?', params[:pass_type_identifier]).joins(:devices).where('devices.device_library_identifier = ?', params[:device_library_identifier])
+        passes = passes.where('passes.updated_at > ?', params[:passesUpdatedSince]) if params[:passesUpdatedSince]
+        if @passes.any?
+          content_type :json
+          {
+            lastUpdated: @passes.collect(&:updated_at).max,
+            serialNumbers: @passes.collect(&:serial_number).collect(&:to_s)
+          }.to_json
+
+          status 200
+        else
+          status 204
+        end
+
       end
     end
 
@@ -93,9 +110,10 @@ class IpassstoreApiApp < Sinatra::Base
       puts "#<RegistrationRequest device_id: #{params[:device_library_identifier]}, pass_type_id: #{params[:pass_type_identifier]}, serial_number: #{params[:serial_number]}, authentication_token: #{authentication_token}, push_token: #{push_token}>"
       puts ''
 
-      @pass = Pass.where(pass_type_identifier: params[:pass_type_identifier], serial_number: params[:serial_number]).first_or_initialize
+      pt = PassTemplate.where(pass_type_identifier: params[:pass_type_identifier]).first
+      @pass = Pass.where(serial_number: params[:serial_number]).first_or_initialize
+      @pass.pass_template = pt
       @pass.save
-      pt = @pass.pass_template
 
       status 404 and return if @pass.nil?
       status 401 and return if request.env['HTTP_AUTHORIZATION'] != "ApplePass #{pt.authentication_token}"
@@ -111,12 +129,13 @@ class IpassstoreApiApp < Sinatra::Base
 
     delete '/devices/:device_library_identifier/registrations/:pass_type_identifier/:serial_number' do
       begin
-        @pass = Pass.where(pass_type_identifier: params[:pass_type_identifier], serial_number: params[:serial_number]).first
+        pt = PassTemplate.where(pass_type_identifier: params[:pass_type_identifier]).first
+        @pass = pt.passes.where(serial_number: params[:serial_number]).first
       rescue ActiveRecord::RecordNotFound => e
         status 404 and return if @pass.empty?
       end
 
-      status 401 and return if request.env['HTTP_AUTHORIZATION'] != "ApplePass #{@pass.authentication_token}"
+      status 401 and return if request.env['HTTP_AUTHORIZATION'] != "ApplePass #{pt.authentication_token}"
 
       begin
         @device = @pass.devices.where(device_library_identifier: params[:device_library_identifier]).first

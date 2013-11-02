@@ -10,9 +10,7 @@ class Pass < ActiveRecord::Base
   has_many :device_passes
   has_many :devices, :through=>:device_passes
 
-  validates_presence_of :pass_type_identifier, :serial_number
-  validates_uniqueness_of :pass_type_identifier
-  validates_uniqueness_of :serial_number, scope: :pass_type_identifier
+  validates_uniqueness_of :serial_number
 
 
 end
