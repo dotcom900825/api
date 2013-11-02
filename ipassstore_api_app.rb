@@ -19,6 +19,13 @@ ActiveRecord::Base.establish_connection(
 class IpassstoreApiApp < Sinatra::Base
   register Sinatra::Namespace
 
+  configure do
+    enable :logging
+    file = File.new("#{settings.root}/log/#{settings.environment}.log", 'a+')
+    file.sync = true
+    use Rack::CommonLogger, file
+  end
+
   get '/passes/:pass_id' do
     begin
       @pass_template = PassTemplate.find(params[:pass_id])
