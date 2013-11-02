@@ -84,7 +84,7 @@ class IpassstoreApiApp < Sinatra::Base
 
       if pt.is_public_card?
         pt = pt.where('pass_templates.last_updated > ?', params[:passesUpdatedSince]) if params[:passesUpdatedSince]
-        unless pt
+        if pt
           content_type :json
           {
             lastUpdated: pt.last_updated,
