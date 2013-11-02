@@ -83,16 +83,11 @@ class IpassstoreApiApp < Sinatra::Base
       end
 
       if pt.is_public_card?
-        if pt.last_updated > params[:passesUpdatedSince]
           content_type :json
           {
             lastUpdated: pt.last_updated,
             serialNumbers: pt.passes.collect(&:serial_number).collect(&:to_s)
           }.to_json
-        else
-          status 204
-        end
-
       else
         passes = Pass.joins(:pass_templates).where('pass_templates.pass_type_identifier = ?', params[:pass_type_identifier]).joins(:devices).where('devices.device_library_identifier = ?', params[:device_library_identifier])
         passes = passes.where('passes.updated_at > ?', params[:passesUpdatedSince]) if params[:passesUpdatedSince]
