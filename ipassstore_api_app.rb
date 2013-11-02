@@ -7,14 +7,25 @@ require './model/device'
 require './model/device_pass'
 require './model/log'
 
+configure :development do
+  ActiveRecord::Base.establish_connection(
+    :adapter  => "mysql2",
+    :host     => "localhost",
+    :username => "root",
+    :password => "",
+    :database => "ipassstore_dev"
+  )
+end
 
-ActiveRecord::Base.establish_connection(
-  :adapter  => "mysql2",
-  :host     => "localhost",
-  :username => "root",
-  :password => "",
-  :database => "ipassstore_dev"
-)
+configure :production do
+  ActiveRecord::Base.establish_connection(
+    :adapter  => "mysql2",
+    :host     => "localhost",
+    :username => "root",
+    :password => "",
+    :database => "ipassstore_production"
+  )
+end
 
 class IpassstoreApiApp < Sinatra::Base
   register Sinatra::Namespace
@@ -23,6 +34,7 @@ class IpassstoreApiApp < Sinatra::Base
     enable :logging
     file = File.new("#{settings.root}/log/#{settings.environment}.log", 'a+')
     file.sync = true
+    use Rack::ShowExceptions
     use Rack::CommonLogger, file
   end
 
@@ -67,15 +79,15 @@ class IpassstoreApiApp < Sinatra::Base
       begin
         pt = PassTemplate.where(pass_type_identifier: params[:pass_type_identifier]).first
       rescue ActiveRecord::RecordNotFound => e
-        status 404 and return if pt.empty?
+        status 404 and return if pt
       end
 
       if pt.is_public_card?
         pt = pt.where('pass_templates.last_updated > ?', params[:passesUpdatedSince]) if params[:passesUpdatedSince]
-        unless pt.empty?
+        unless pt
           content_type :json
           {
-            lastUpdated: pt.updated_at,
+            lastUpdated: pt.last_updated,
             serialNumbers: pt.passes.collect(&:serial_number).collect(&:to_s)
           }.to_json
 
