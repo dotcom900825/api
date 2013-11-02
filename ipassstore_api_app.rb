@@ -90,8 +90,6 @@ class IpassstoreApiApp < Sinatra::Base
             lastUpdated: pt.last_updated,
             serialNumbers: pt.passes.collect(&:serial_number).collect(&:to_s)
           }.to_json
-
-          status 200
         else
           status 204
         end
@@ -105,8 +103,6 @@ class IpassstoreApiApp < Sinatra::Base
             lastUpdated: @passes.collect(&:updated_at).max,
             serialNumbers: @passes.collect(&:serial_number).collect(&:to_s)
           }.to_json
-
-          status 200
         else
           status 204
         end
