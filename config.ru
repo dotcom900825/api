@@ -10,7 +10,7 @@ Bundler.require
 
 require './ipassstore_api_app'
 
-CERT_PATH = '/Users/thomas/Desktop/rails/passbook/passbook_sinatra/.ssl'
+CERT_PATH = './.ssl'
 
 webrick_options = {
         :Port               => 8443,
