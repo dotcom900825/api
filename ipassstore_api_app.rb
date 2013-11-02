@@ -6,7 +6,7 @@ require './model/pass_template'
 require './model/device'
 require './model/device_pass'
 require './model/log'
-require 'json'
+
 
 ActiveRecord::Base.establish_connection(
   :adapter  => "mysql2",
@@ -120,25 +120,29 @@ class IpassstoreApiApp < Sinatra::Base
       status 200
     end
 
-    private
-
-    def authentication_token
-      if env && env['HTTP_AUTHORIZATION']
-        env['HTTP_AUTHORIZATION'].split(" ").last
-      end
-    end
-
-    # Convienience method for parsing the pushToken out of a JSON POST body
-    def push_token
-      if request && request.body
-        request.body.rewind
-        json_body = JSON.parse(request.body.read)
-        if json_body['pushToken']
-          json_body['pushToken']
-        end
-      end
-    end
-
   end
 
+
+  private
+
+  def authentication_token
+    if env && env['HTTP_AUTHORIZATION']
+      env['HTTP_AUTHORIZATION'].split(" ").last
+    end
+  end
+
+  # Convienience method for parsing the pushToken out of a JSON POST body
+  def push_token
+    if request && request.body
+      request.body.rewind
+      json_body = JSON.parse(request.body.read)
+      if json_body['pushToken']
+        json_body['pushToken']
+      end
+    end
+  end
+
+
 end
+
+

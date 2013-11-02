@@ -3,7 +3,7 @@
   "passTypeIdentifier" : "pass.com.ipassstore.dev",
   "serialNumber" : "E5982H-I2",
   "teamIdentifier" : "3JAYL5R2NX",
-  "webServiceURL" : "https://www.xishi.info/passbook",
+  "webServiceURL" : "https://api.xishi.info/passbook",
   "authenticationToken" : "vxwxd7J8AlNNFPS8k0a0FfUFtq0ewzFdc",
   "barcode" : {
     "message" : "123456789",
@@ -21,8 +21,7 @@
     }
   ],
   "organizationName" : "Fute Wang",
-  "logoText" : "Paw Planet",
-  "description" : "20% off premium dog food",
+  "logoText" : "Triton Pass",
   "foregroundColor" : "rgb(255, 255, 255)",
   "backgroundColor" : "rgb(206, 140, 53)",
   "coupon" : {
