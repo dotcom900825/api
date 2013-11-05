@@ -27,6 +27,17 @@ configure :production do
   )
 end
 
+configure :test do
+  ActiveRecord::Base.establish_connection(
+    :adapter  => "mysql2",
+    :host     => "localhost",
+    :username => "root",
+    :password => "",
+    :database => "ipassstore_test"
+  )
+end
+
+
 class IpassstoreApiApp < Sinatra::Base
   register Sinatra::Namespace
 
@@ -76,10 +87,16 @@ class IpassstoreApiApp < Sinatra::Base
     end
 
     get '/devices/:device_library_identifier/registrations/:pass_type_identifier' do
+      raise Sinatra::NotFound unless params[:pass_type_identifier].match /([\w\d]\.?)+/
+
+      puts "\n Handling check update request..."
+      # validate that the request is authorized to deal with the pass referenced
+      puts "#<Check Update Request device_id: #{params[:device_library_identifier]}, pass_type_id: #{params[:pass_type_identifier]}\n>"
+
       begin
         pt = PassTemplate.where(pass_type_identifier: params[:pass_type_identifier]).first
       rescue ActiveRecord::RecordNotFound => e
-        status 404 and return if pt
+        status 404 and return if pt.nil?
       end
 
       if pt.is_public_card?
@@ -91,11 +108,11 @@ class IpassstoreApiApp < Sinatra::Base
       else
         passes = Pass.joins(:pass_templates).where('pass_templates.pass_type_identifier = ?', params[:pass_type_identifier]).joins(:devices).where('devices.device_library_identifier = ?', params[:device_library_identifier])
         passes = passes.where('passes.updated_at > ?', params[:passesUpdatedSince]) if params[:passesUpdatedSince]
-        if @passes.any?
+        if passes.any?
           content_type :json
           {
-            lastUpdated: @passes.collect(&:updated_at).max,
-            serialNumbers: @passes.collect(&:serial_number).collect(&:to_s)
+            lastUpdated: passes.collect(&:updated_at).max,
+            serialNumbers: passes.collect(&:serial_number).collect(&:to_s)
           }.to_json
         else
           status 204
@@ -105,12 +122,11 @@ class IpassstoreApiApp < Sinatra::Base
     end
 
     post '/devices/:device_library_identifier/registrations/:pass_type_identifier/:serial_number' do
+      raise Sinatra::NotFound unless params[:pass_type_identifier].match /([\w\d]\.?)+/
 
-      puts ''
-      puts "Handling registration request..."
+      puts "\n Handling registration request..."
       # validate that the request is authorized to deal with the pass referenced
-      puts "#<RegistrationRequest device_id: #{params[:device_library_identifier]}, pass_type_id: #{params[:pass_type_identifier]}, serial_number: #{params[:serial_number]}, authentication_token: #{authentication_token}, push_token: #{push_token}>"
-      puts ''
+      puts "#<RegistrationRequest device_id: #{params[:device_library_identifier]}, pass_type_id: #{params[:pass_type_identifier]}, serial_number: #{params[:serial_number]}, authentication_token: #{authentication_token}, push_token: #{push_token}\n>"
 
       pt = PassTemplate.where(pass_type_identifier: params[:pass_type_identifier]).first
       @pass = Pass.where(serial_number: params[:serial_number]).first_or_initialize
@@ -130,22 +146,24 @@ class IpassstoreApiApp < Sinatra::Base
     end
 
     delete '/devices/:device_library_identifier/registrations/:pass_type_identifier/:serial_number' do
+      raise Sinatra::NotFound unless params[:pass_type_identifier].match /([\w\d]\.?)+/
+
       begin
         pt = PassTemplate.where(pass_type_identifier: params[:pass_type_identifier]).first
-        @pass = pt.passes.where(serial_number: params[:serial_number]).first
+        pass = pt.passes.where(serial_number: params[:serial_number]).first
       rescue ActiveRecord::RecordNotFound => e
-        status 404 and return if @pass.empty?
+        status 404 and return if pass.nil?
       end
 
       status 401 and return if request.env['HTTP_AUTHORIZATION'] != "ApplePass #{pt.authentication_token}"
 
       begin
-        @device = @pass.devices.where(device_library_identifier: params[:device_library_identifier]).first
+        device = pass.devices.where(device_library_identifier: params[:device_library_identifier]).first
       rescue ActiveRecord::RecordNotFound => e
-        status 404 and return if @device.empty?
+        status 404 and return if device.nil?
       end
 
-      @device.destroy
+      device.destroy
       status 200
     end
 
