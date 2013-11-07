@@ -17,6 +17,12 @@ class PassTemplate < ActiveRecord::Base
   PASS_DISTRIBUTION = { 1 => :public, 2 => :private}
   INVERT_PASS_DISTRIBUTION = PASS_DISTRIBUTION.invert
 
+
+  def is_public_card?
+    return true if self.distribution_type == INVERT_PASS_DISTRIBUTION[:public]
+    false
+  end
+
   def pkpass_path
     "#{passbook_path}/#{slug}.pkpass"
   end
