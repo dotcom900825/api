@@ -49,7 +49,7 @@ class IpassstoreApiApp < Sinatra::Base
     use Rack::CommonLogger, file
   end
 
-  get '/passes/:pass_id' do
+  get '/pass_templates/:pass_id' do
     begin
       @pass_template = PassTemplate.find(params[:pass_id])
     rescue ActiveRecord::RecordNotFound => e
