@@ -31,7 +31,10 @@ GEM
     highline (1.6.19)
     i18n (0.6.5)
     json (1.8.0)
+    metaclass (0.0.4)
     minitest (4.7.5)
+    mocha (0.14.0)
+      metaclass (~> 0.0.1)
     mojo_magick (0.4.3)
     multi_json (1.8.2)
     mysql2 (0.3.13)
@@ -44,7 +47,7 @@ GEM
     rack-test (0.6.2)
       rack (>= 1.0)
     rqrcode (0.4.2)
-    rubyzip (1.0.0)
+    rubyzip (2.0.0)
     sinatra (1.4.3)
       rack (~> 1.4)
       rack-protection (~> 1.4)
@@ -68,7 +71,10 @@ PLATFORMS
 DEPENDENCIES
   activerecord
   dubai
+  mocha (~> 0.14.0)
+  multi_json
   mysql2
   qr4r
+  rack-test (~> 0.6.1)
   sinatra
   sinatra-contrib
